@@ -3,12 +3,12 @@ import json
 import os
 
 # 設定網頁標題與 RWD 手機優化
-st.set_page_config(page_title="團長投票系統", page_icon="🗳️", layout="centered")
+st.set_page_config(page_title="諮商中心志工團 團長投票系統", page_icon="🧡", layout="centered")
 
-# --- 設定檔案路徑（用 JSON 模擬資料庫儲存結果） ---
+# --- 設定檔案路徑（用 JSON 儲存匿名結果） ---
 DATA_FILE = "vote_data.json"
 
-# --- 你提供的 67 人完整可投票者名單 ---
+# --- 67 人完整志工夥伴名單 ---
 VOTER_WHITELIST = [
     "洪郁宸", "唐譽宸", "吳霜", "陳又榆", "張哲維", "陳俞安", "王玉霈", "林軒宇", 
     "謝佳晉", "林子馨", "戴宜婷", "黃翌瑄", "陳勤雅", "王歆瑜", "樋口和香", "吳紹安", 
@@ -27,7 +27,7 @@ def load_data():
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     else:
-        # 所有人初始狀態都是「未投票(False)」，同意與不同意票數為 0
+        # 初始狀態：所有人未投票，票數為 0
         voted_status = {voter: False for voter in VOTER_WHITELIST}
         return {
             "voted_status": voted_status,
@@ -38,65 +38,67 @@ def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-# 載入當前投票狀態
 data = load_data()
 
 # --- 網頁介面設計 ---
-st.title("🗳️ 下一屆團長不記名投票系統")
-st.write("本系統採用分離式設計，僅紀錄『誰投過票』與『票數總計』，兩者無關聯，確保絕對匿名。")
+st.title("🧡 諮商中心志工團：下一屆團長不記名投票")
+st.write("親愛的志工夥伴，謝謝你過去這段日子的付出與陪伴。不論世界怎麼變，這裡永遠是最溫暖的地方。")
+st.write("為了團隊的延續，請花一分鐘為我們的新團隊投下神聖的一票。本系統採用『絕對匿名設計』，你可以安心並真誠地表達想法。")
 st.markdown("---")
 
 # 1. 身份驗證區
-st.header("第一步：驗證投票資格")
-user_name = st.text_input("請輸入您的真實姓名以驗證身份:").strip()
+st.header("✨ 夥伴，請先驗證身份")
+user_name = st.text_input("請輸入您的真實姓名:").strip()
 
 if user_name:
     if user_name not in data["voted_status"]:
-        st.error("❌ 您輸入的姓名不在本次投票的名單中，請檢查是否有錯字，或連繫管理員。")
+        st.error("❌ 哎呀，名單上找不到這個名字！請檢查有沒有錯字，或是戳一下幹部幫你確認。")
     elif data["voted_status"][user_name]:
-        st.warning("⚠️ 系統紀錄顯示：此姓名已經完成過投票，無法重複投票！")
+        st.warning("⚠️ 系統紀錄顯示你已經投過囉！謝謝你的熱心參與～")
     else:
-        st.success("✅ 資格驗證成功！請在下方投下您神聖的一票。")
+        st.success("🎉 認證成功！很高興看見你，請在下方留下你的溫暖心聲。")
         
         # 2. 投票區
         st.markdown("---")
-        st.header("第二步：不記名表決")
-        st.subheader("⚠️ 請問您是否同意由候選人擔任下一屆團長？")
+        st.header("🗳️ 團長信任表決")
+        st.subheader("💡 請問你是否同意由「林姿妤」擔任諮商中心志工團下一屆團長？")
         
-        vote_choice = st.radio("請選擇您的意向：", ["請選擇...", "同意", "不同意"], index=0)
+        vote_choice = st.radio("請選擇您的意向：", ["請選擇...", "同意，支持姿妤帶領大家！", "不同意，我有其他想法。"], index=0)
         
-        submit_button = st.button("確認送出選票 (送出後無法修改)")
+        st.markdown("---")
+        submit_button = st.button("💝 確認送出選票 (送出後就不能修改囉)")
         
         if submit_button:
             if vote_choice == "請選擇...":
-                st.error("請先選擇『同意』或『不同意』再點擊送出。")
+                st.error("請先選擇對「林姿妤」擔任團長的投票意向，再點擊送出唷！")
             else:
-                # 執行投票邏輯（防重複 + 匿名累加）
-                data["voted_status"][user_name] = True
-                data["results"][vote_choice] += 1
+                # 轉譯投票選項
+                final_vote = "同意" if "同意" in vote_choice else "不同意"
                 
-                # 儲存回 JSON 檔案
+                # 儲存投票狀態與匿名票數
+                data["voted_status"][user_name] = True
+                data["results"][final_vote] += 1
+                
                 save_data(data)
                 
                 st.balloons()
-                st.success("🎉 投票成功！感謝您的參與，您現在可以關閉此網頁了。")
+                st.success("🥰 投票成功！謝謝你為志工團付出的每一份心力，可以關閉這個網頁囉。")
                 st.rerun()
 
 # --- 管理員後台 ---
 st.markdown("---")
-with st.expander("📊 管理員檢視投票進度與結果 (點擊展開)"):
+with st.expander("📊 幹部專區：檢視投票進度與結果 (點擊展開)"):
     total_voters = len(VOTER_WHITELIST)
     voted_count = sum(1 for v in data["voted_status"].values() if v)
     
-    st.write(f"**目前投票率：** {voted_count} / {total_voters} 人已投票")
+    st.write(f"**目前投票進度：** {voted_count} / {total_voters} 位夥伴已參與")
     
-    # 顯示未投票名單（方便催票，但不會洩漏大家投什麼）
     unvoted_list = [name for name, voted in data["voted_status"].items() if not voted]
     if unvoted_list:
-        st.write(f"**尚未投票的人員：** {', '.join(unvoted_list)}")
+        st.write(f"**還沒投票的夥伴（可以悄悄去提醒他們唷）：**\n{', '.join(unvoted_list)}")
     else:
-        st.write("🎉 所有人皆已投票完畢！")
+        st.write("🎉 太棒了！所有夥伴都投票完畢囉！")
         
     st.markdown("---")
-    st.write("**當前開票結果：**")
+    st.write("#### 📢 團長開票結果")
     st.json(data["results"])
