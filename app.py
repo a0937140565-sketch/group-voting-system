@@ -8,6 +8,10 @@ st.set_page_config(page_title="諮商中心志工團 團長投票系統", page_i
 # --- 設定檔案路徑（用 JSON 儲存匿名結果） ---
 DATA_FILE = "vote_data.json"
 
+# --- ⚙️ 幹部專區密碼設定 ⚙️ ---
+# 你可以把下面的 "1234" 改成任何你想設定的密碼
+ADMIN_PASSWORD = "1234"
+
 # --- 67 人完整志工夥伴名單 ---
 VOTER_WHITELIST = [
     "洪郁宸", "唐譽宸", "吳霜", "陳又榆", "張哲維", "陳俞安", "王玉霈", "林軒宇", 
@@ -27,14 +31,13 @@ def load_data():
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             existing_data = json.load(f)
         
-        # ✨ 自動修正：確保新補上組別的夥伴名字能同步更新進舊的 JSON 紀錄中，避免系統崩潰
+        # 自動修正：確保名單變更時舊的 JSON 紀錄能同步更新，避免系統崩潰
         for voter in VOTER_WHITELIST:
             if voter not in existing_data["voted_status"]:
                 existing_data["voted_status"][voter] = False
                 
         return existing_data
     else:
-        # 初始狀態：所有人未投票，票數為 0
         voted_status = {voter: False for voter in VOTER_WHITELIST}
         return {
             "voted_status": voted_status,
@@ -49,21 +52,19 @@ data = load_data()
 
 # --- 網頁介面設計 ---
 st.title("🧡 諮商中心志工團：下一屆團長不記名投票")
-st.write("親愛的志工夥伴，謝謝你過去這段日子的付出與陪伴。不論世界怎麼變，這裡永遠是最溫暖的地方。")
+st.write("親愛的志工夥伴，謝謝你過去這段日子的付出與陪伴。不論世界怎麼變，這裡都會是最溫暖的地方。")
 st.write("為了團隊的延續，請花一分鐘為我們的新團隊投下神聖的一票。本系統採用『絕對匿名設計』，你可以安心並真誠地表達想法。")
 st.markdown("---")
 
 # 1. 身份驗證區
 st.header("✨ 夥伴，請先驗證身份")
 
-# 💡 溫馨提醒：特別為同名的夥伴加上格式說明
 st.info("📢 **名字輸入小提醒**：\n如果是**宥慈**要投票，請依照格式輸入：`黃宥慈(窩心組)` 或 `黃宥慈(樂活組)` 唷！（括號請用半形括號 `()`）")
 
 user_name = st.text_input("請輸入您的真實姓名:").strip()
 
 if user_name:
     if user_name not in data["voted_status"]:
-        # 如果剛好只輸入「黃宥慈」，給予更貼心的提示引導
         if user_name == "黃宥慈":
             st.error("❌ 哎呀！團內有兩位宥慈夥伴唷，請幫我們在名字後面加上組別，例如：`黃宥慈(窩心組)` 或 `黃宥慈(樂活組)`")
         else:
@@ -78,19 +79,17 @@ if user_name:
         st.header("🗳️ 團長表決")
         st.subheader("💡 請問你是否同意由「林姿妤」擔任諮商中心志工團下一屆團長？")
         
-        vote_choice = st.radio("請選擇您的意向：", ["請選擇...", "同意，支持姿妤帶領大家！", "不同意。"], index=0)
+        vote_choice = st.radio("請選擇您的意向：", ["請選擇...", "同意，支持姿妤帶領大家！", "不同意，我有其他想法。"], index=0)
         
         st.markdown("---")
         submit_button = st.button("💝 確認送出選票 (送出後就不能修改囉)")
         
         if submit_button:
             if vote_choice == "請選擇...":
-                st.error("請先選擇對「林姿妤」擔任團長的投票意向，再點擊送出唷！")
+                st.error("請先選擇對「林姿妤」擔任團長的投票，再點擊送出唷！")
             else:
-                # 轉譯投票選項
                 final_vote = "同意" if "同意" in vote_choice else "不同意"
                 
-                # 儲存投票狀態與匿名票數
                 data["voted_status"][user_name] = True
                 data["results"][final_vote] += 1
                 
@@ -100,12 +99,13 @@ if user_name:
                 st.success("🥰 投票成功！謝謝你為志工團付出的每一份心力，可以關閉這個網頁囉。")
                 st.rerun()
 
-# --- 管理員後台 ---
+# --- 管理員後台（升級解鎖功能） ---
 st.markdown("---")
-with st.expander("📊 幹部專區：檢視投票進度與結果 (點擊展開)"):
+with st.expander("📊 幹部專區：檢視投票進度 (點擊展開)"):
     total_voters = len(VOTER_WHITELIST)
     voted_count = sum(1 for v in data["voted_status"].values() if v)
     
+    # 這是公開資訊，方便大家互相提醒催票
     st.write(f"**目前投票進度：** {voted_count} / {total_voters} 位夥伴已參與")
     
     unvoted_list = [name for name, voted in data["voted_status"].items() if not voted]
@@ -115,5 +115,14 @@ with st.expander("📊 幹部專區：檢視投票進度與結果 (點擊展開)
         st.write("🎉 太棒了！所有夥伴都投票完畢囉！")
         
     st.markdown("---")
-    st.write("#### 📢 團長開票結果")
-    st.json(data["results"])
+    
+    # 🔐 票數解鎖密碼框
+    st.write("#### 🔒 查閱詳細開票結果")
+    input_pwd = st.text_input("請輸入幹部管理密碼以觀看票數：", type="password")
+    
+    if input_pwd == ADMIN_PASSWORD:
+        st.success("🔓 密碼正確！")
+        st.write("#### 📢 團長開票結果")
+        st.json(data["results"])
+    elif input_pwd != "":
+        st.error("❌ 密碼錯誤，無法檢視票數結果。")
