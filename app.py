@@ -75,10 +75,10 @@ if user_name:
         
         # 2. 投票區
         st.markdown("---")
-        st.header("🗳️ 團長信任表決")
+        st.header("🗳️ 團長表決")
         st.subheader("💡 請問你是否同意由「林姿妤」擔任諮商中心志工團下一屆團長？")
         
-        vote_choice = st.radio("請選擇您的意向：", ["請選擇...", "同意，支持姿妤帶領大家！", "不同意，我有其他想法。"], index=0)
+        vote_choice = st.radio("請選擇您的意向：", ["請選擇...", "同意，支持姿妤帶領大家！", "不同意。"], index=0)
         
         st.markdown("---")
         submit_button = st.button("💝 確認送出選票 (送出後就不能修改囉)")
