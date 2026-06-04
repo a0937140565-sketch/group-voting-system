@@ -52,7 +52,7 @@ data = load_data()
 
 # --- 網頁介面設計 ---
 st.title("🧡 諮商中心志工團：下一屆團長不記名投票")
-st.write("親愛的志工夥伴，謝謝你過去這段日子的付出與陪伴。不論世界怎麼變，這裡都會是最溫暖的地方。")
+st.write("親愛的志工夥伴，謝謝你過去這段日子的付出與陪伴。這裡永遠是最溫暖的地方。")
 st.write("為了團隊的延續，請花一分鐘為我們的新團隊投下神聖的一票。本系統採用『絕對匿名設計』，你可以安心並真誠地表達想法。")
 st.markdown("---")
 
@@ -86,7 +86,7 @@ if user_name:
         
         if submit_button:
             if vote_choice == "請選擇...":
-                st.error("請先選擇對「林姿妤」擔任團長的投票，再點擊送出唷！")
+                st.error("請先選擇對「林姿妤」擔任團長的投票意向，再點擊送出唷！")
             else:
                 final_vote = "同意" if "同意" in vote_choice else "不同意"
                 
@@ -99,30 +99,36 @@ if user_name:
                 st.success("🥰 投票成功！謝謝你為志工團付出的每一份心力，可以關閉這個網頁囉。")
                 st.rerun()
 
-# --- 管理員後台（升級解鎖功能） ---
+# --- 管理員後台（全功能加密鎖定） ---
 st.markdown("---")
-with st.expander("📊 幹部專區：檢視投票進度 (點擊展開)"):
-    total_voters = len(VOTER_WHITELIST)
-    voted_count = sum(1 for v in data["voted_status"].values() if v)
+with st.expander("📊 幹部專區：密碼驗證解鎖 (點擊展開)"):
     
-    # 這是公開資訊，方便大家互相提醒催票
-    st.write(f"**目前投票進度：** {voted_count} / {total_voters} 位夥伴已參與")
-    
-    unvoted_list = [name for name, voted in data["voted_status"].items() if not voted]
-    if unvoted_list:
-        st.write(f"**還沒投票的夥伴（可以悄悄去提醒他們唷）：**\n{', '.join(unvoted_list)}")
-    else:
-        st.write("🎉 太棒了！所有夥伴都投票完畢囉！")
-        
-    st.markdown("---")
-    
-    # 🔐 票數解鎖密碼框
-    st.write("#### 🔒 查閱詳細開票結果")
-    input_pwd = st.text_input("請輸入幹部管理密碼以觀看票數：", type="password")
+    st.write("#### 🔒 請輸入密碼解鎖後台資訊")
+    input_pwd = st.text_input("請輸入幹部管理密碼：", type="password")
     
     if input_pwd == ADMIN_PASSWORD:
-        st.success("🔓 密碼正確！")
-        st.write("#### 📢 團長開票結果")
+        st.success("🔓 密碼正確！已為您載入即時後台數據。")
+        st.markdown("---")
+        
+        # 計算投票進度
+        total_voters = len(VOTER_WHITELIST)
+        voted_count = sum(1 for v in data["voted_status"].values() if v)
+        
+        # 1. 顯示投票進度
+        st.write(f"### 📈 目前投票進度：{voted_count} / {total_voters} 位夥伴已參與")
+        
+        # 2. 顯示催票名單
+        unvoted_list = [name for name, voted in data["voted_status"].items() if not voted]
+        if unvoted_list:
+            st.write(f"**💡 還沒投票的夥伴（可以悄悄去提醒他們唷）：**\n{', '.join(unvoted_list)}")
+        else:
+            st.write("🎉 太棒了！所有夥伴都投票完畢囉！")
+            
+        st.markdown("---")
+        
+        # 3. 顯示開票結果
+        st.write("### 📢 團長開票結果")
         st.json(data["results"])
+        
     elif input_pwd != "":
-        st.error("❌ 密碼錯誤，無法檢視票數結果。")
+        st.error("❌ 密碼錯誤，無法解鎖進度與結果。")
