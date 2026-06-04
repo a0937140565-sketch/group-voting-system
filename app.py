@@ -120,7 +120,7 @@ with st.expander("📊 幹部專區：密碼驗證解鎖 (點擊展開)"):
         # 2. 顯示催票名單
         unvoted_list = [name for name, voted in data["voted_status"].items() if not voted]
         if unvoted_list:
-            st.write(f"**💡 還沒投票的夥伴（可以悄悄去提醒他們唷）：**\n{', '.join(unvoted_list)}")
+            st.write(f"**💡 還沒投票的夥伴（可以悄悄去提醒他們唷）：**\n{'、'.join(unvoted_list)}")
         else:
             st.write("🎉 太棒了！所有夥伴都投票完畢囉！")
             
