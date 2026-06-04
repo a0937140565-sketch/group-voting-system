@@ -91,7 +91,7 @@ if user_name:
             if vote_choice == "請選擇...":
                 st.error("請先選擇對「林姿妤」擔任團長的投票意向，再點擊送出唷！")
             else:
-                final_vote = "同意" if "同意" in vote_choice else "不同意"
+                final_vote = "不同意" if "不同意" in vote_choice else "同意"
                 
                 data["voted_status"][user_name] = True
                 data["results"][final_vote] += 1
