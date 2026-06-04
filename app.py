@@ -21,11 +21,18 @@ VOTER_WHITELIST = [
     "楊淑雯", "鄭詩蓉"
 ]
 
-# --- 初始化資料庫 ---
+# --- 初始化資料庫（含自動防錯修正） ---
 def load_data():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+            existing_data = json.load(f)
+        
+        # ✨ 自動修正：確保新補上組別的夥伴名字能同步更新進舊的 JSON 紀錄中，避免系統崩潰
+        for voter in VOTER_WHITELIST:
+            if voter not in existing_data["voted_status"]:
+                existing_data["voted_status"][voter] = False
+                
+        return existing_data
     else:
         # 初始狀態：所有人未投票，票數為 0
         voted_status = {voter: False for voter in VOTER_WHITELIST}
@@ -48,11 +55,19 @@ st.markdown("---")
 
 # 1. 身份驗證區
 st.header("✨ 夥伴，請先驗證身份")
+
+# 💡 溫馨提醒：特別為同名的夥伴加上格式說明
+st.info("📢 **名字輸入小提醒**：\n如果是**宥慈**要投票，請依照格式輸入：`黃宥慈(窩心組)` 或 `黃宥慈(樂活組)` 唷！（括號請用半形括號 `()`）")
+
 user_name = st.text_input("請輸入您的真實姓名:").strip()
 
 if user_name:
     if user_name not in data["voted_status"]:
-        st.error("❌ 哎呀，名單上找不到這個名字！請檢查有沒有錯字，或是戳一下幹部幫你確認。")
+        # 如果剛好只輸入「黃宥慈」，給予更貼心的提示引導
+        if user_name == "黃宥慈":
+            st.error("❌ 哎呀！團內有兩位宥慈夥伴唷，請幫我們在名字後面加上組別，例如：`黃宥慈(窩心組)` 或 `黃宥慈(樂活組)`")
+        else:
+            st.error("❌ 哎呀，名單上找不到這個名字！請檢查有沒有錯字，或是戳一下幹部幫你確認。")
     elif data["voted_status"][user_name]:
         st.warning("⚠️ 系統紀錄顯示你已經投過囉！謝謝你的熱心參與～")
     else:
