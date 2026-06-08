@@ -1,13 +1,17 @@
 import streamlit as st
+import json
+import os
 
 # 設定網頁標題與 RWD 手機優化
 st.set_page_config(page_title="諮商中心志工團 團長投票系統", page_icon="🧡", layout="centered")
 
+# --- 設定檔案路徑（用 JSON 儲存匿名結果，拉長戰線專用） ---
+DATA_FILE = "vote_data.json"
+
 # --- ⚙️ 幹部專區密碼設定 ⚙️ ---
-# 你可以把下面的 "1234" 改成任何你想設定的密碼
 ADMIN_PASSWORD = "1234"
 
-# --- 完整志工夥伴名單（已補上最新名單） ---
+# --- 完整志工夥伴名單（已包含最新補上的名單） ---
 VOTER_WHITELIST = [
     "洪郁宸", "唐譽宸", "吳霜", "陳又榆", "張哲維", "陳俞安", "王玉霈", "林軒宇", 
     "謝佳晉", "林子馨", "戴宜婷", "黃翌瑄", "陳勤雅", "王歆瑜", "樋口和香", "吳紹安", 
@@ -22,12 +26,30 @@ VOTER_WHITELIST = [
     "陳彥穎", "曾詩惠", "楊素瑄"
 ]
 
-# --- 🚀 利用 Streamlit 內建的 st.session_state 實現免洗臨時記憶體資料庫 ---
-if "voted_status" not in st.session_state:
-    st.session_state["voted_status"] = {voter: False for voter in VOTER_WHITELIST}
+# --- 初始化資料庫（含自動防錯修正） ---
+def load_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            existing_data = json.load(f)
+        
+        # 自動修正：確保名單變更時舊的 JSON 紀錄能同步更新，避免系統崩潰
+        for voter in VOTER_WHITELIST:
+            if voter not in existing_data["voted_status"]:
+                existing_data["voted_status"][voter] = False
+                
+        return existing_data
+    else:
+        voted_status = {voter: False for voter in VOTER_WHITELIST}
+        return {
+            "voted_status": voted_status,
+            "results": {"同意": 0, "不同意": 0}
+        }
 
-if "results" not in st.session_state:
-    st.session_state["results"] = {"同意": 0, "不同意": 0}
+def save_data(data):
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+
+data = load_data()
 
 # --- 網頁介面設計 ---
 st.title("🧡 諮商中心志工團：下一屆團長不記名投票")
@@ -46,12 +68,12 @@ st.info("""🔒 **關於投票隱私，請大家放心：**
 user_name = st.text_input("請輸入您的完整姓名:").strip()
 
 if user_name:
-    if user_name not in st.session_state["voted_status"]:
+    if user_name not in data["voted_status"]:
         if user_name == "黃宥慈":
             st.error("❌ 哎呀！團內有兩位宥慈夥伴唷，請幫我們在名字後面加上組別，例如：`黃宥慈(窩心組)` 或 `黃宥慈(樂活組)`")
         else:
             st.error("❌ 哎呀，名單上找不到這個名字！請檢查有沒有錯字，或是戳一下幹部幫你確認。")
-    elif st.session_state["voted_status"][user_name]:
+    elif data["voted_status"][user_name]:
         st.warning("⚠️ 系統紀錄顯示你已經投過囉！謝謝你的熱心參與～")
     else:
         st.success("🎉 很高興看見你，請在下方留下你的想法。")
@@ -72,15 +94,16 @@ if user_name:
             else:
                 final_vote = "不同意" if "不同意" in vote_choice else "同意"
                 
-                # 寫入臨時記憶體
-                st.session_state["voted_status"][user_name] = True
-                st.session_state["results"][final_vote] += 1
+                data["voted_status"][user_name] = True
+                data["results"][final_vote] += 1
+                
+                save_data(data)
                 
                 st.balloons()
                 st.success("🥰 投票成功！謝謝你為志工團付出的每一份心力，可以關閉這個網頁囉。")
                 st.rerun()
 
-# --- 管理員後台（全功能加密鎖定 + 緊急應變修正中心） ---
+# --- 管理員後台（全功能加密鎖定 + 緊急應變中心） ---
 st.markdown("---")
 with st.expander("📊 幹部專區：密碼驗證解鎖 (點擊展開)"):
     
@@ -93,13 +116,13 @@ with st.expander("📊 幹部專區：密碼驗證解鎖 (點擊展開)"):
         
         # 計算投票進度
         total_voters = len(VOTER_WHITELIST)
-        voted_count = sum(1 for v in st.session_state["voted_status"].values() if v)
+        voted_count = sum(1 for v in data["voted_status"].values() if v)
         
         # 1. 顯示投票進度
         st.write(f"### 📈 目前投票進度：{voted_count} / {total_voters} 位夥伴已參與")
         
         # 2. 顯示催票名單
-        unvoted_list = [name for name, voted in st.session_state["voted_status"].items() if not voted]
+        unvoted_list = [name for name, voted in data["voted_status"].items() if not voted]
         if unvoted_list:
             st.write(f"**💡 還沒投票的夥伴（可以悄悄去提醒他們唷）：**\n{'、'.join(unvoted_list)}")
         else:
@@ -109,7 +132,7 @@ with st.expander("📊 幹部專區：密碼驗證解鎖 (點擊展開)"):
         
         # 3. 顯示開票結果
         st.write("### 📢 團長開票結果")
-        st.json(st.session_state["results"])
+        st.json(data["results"])
         
         st.markdown("---")
         
@@ -120,9 +143,9 @@ with st.expander("📊 幹部專區：密碼驗證解鎖 (點擊展開)"):
         fix_name = st.text_input("請輸入要「修正重投」的夥伴姓名：").strip()
         
         if fix_name:
-            if fix_name not in st.session_state["voted_status"]:
+            if fix_name not in data["voted_status"]:
                 st.error("找不到這位夥伴的名字，請確認是否打錯字。")
-            elif not st.session_state["voted_status"][fix_name]:
+            elif not data["voted_status"][fix_name]:
                 st.warning("這位夥伴目前本來就『尚未投票』，不需要修正喔。")
             else:
                 st.warning(f"⚠️ 請確認：即將把『{fix_name}』標記為未投票。")
@@ -132,10 +155,11 @@ with st.expander("📊 幹部專區：密碼驗證解鎖 (點擊展開)"):
                     if minus_choice == "請選擇...":
                         st.error("請先選擇要扣除同意還是不同意票！")
                     else:
-                        st.session_state["voted_status"][fix_name] = False
+                        data["voted_status"][fix_name] = False
                         target_key = "同意" if "同意" in minus_choice else "不同意"
-                        if st.session_state["results"][target_key] > 0:
-                            st.session_state["results"][target_key] -= 1
+                        if data["results"][target_key] > 0:
+                            data["results"][target_key] -= 1
+                        save_data(data)
                         st.success(f"✅ 已成功幫 {fix_name} 解鎖！後台已扣除 1 張{target_key}票。請轉告夥伴可以重新整理網頁、重新投票了。")
                         st.rerun()
                         
