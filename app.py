@@ -156,7 +156,7 @@ with st.expander("📊 幹部專區：密碼驗證解鎖 (點擊展開)"):
                         st.error("請先選擇要扣除同意還是不同意票！")
                     else:
                         data["voted_status"][fix_name] = False
-                        target_key = "同意" if "同意" in minus_choice else "不同意"
+                        target_key = "不同意" if "不同意" in minus_choice else "同意"
                         if data["results"][target_key] > 0:
                             data["results"][target_key] -= 1
                         save_data(data)
